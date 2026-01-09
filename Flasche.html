@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flaschendrehen 🍾</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: moveBackground 20s linear infinite;
+            opacity: 0.3;
+        }
+
+        @keyframes moveBackground {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .setup-screen, .game-screen {
+            text-align: center;
+        }
+
+        .game-screen {
+            display: none;
+        }
+
+        .title {
+            color: white;
+            font-size: clamp(32px, 6vw, 48px);
+            margin-bottom: 20px;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            color: rgba(255,255,255,0.9);
+            font-size: clamp(16px, 3vw, 20px);
+            margin-bottom: 40px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .game-area {
+            width: 90vmin;
+            height: 90vmin;
+            max-width: 600px;
+            max-height: 600px;
+            background: radial-gradient(circle, #ffffff 0%, #f0f0f0 100%);
+            border-radius: 50%;
+            box-shadow: 
+                0 0 0 10px rgba(255,255,255,0.2),
+                0 0 0 20px rgba(255,255,255,0.1),
+                0 30px 80px rgba(0,0,0,0.4),
+                inset 0 -5px 20px rgba(0,0,0,0.1);
+            position: relative;
+            margin: 0 auto;
+        }
+
+        .center-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(145deg, #e0e0e0, #ffffff);
+            border-radius: 50%;
+            box-shadow: 
+                0 5px 15px rgba(0,0,0,0.2),
+                inset 0 2px 5px rgba(255,255,255,0.8);
+            z-index: 1;
+        }
+
+        .player-dot {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            box-shadow: 
+                0 8px 25px rgba(0,0,0,0.3),
+                0 0 0 4px rgba(255,255,255,0.3),
+                inset 0 -3px 10px rgba(0,0,0,0.2);
+            cursor: move;
+            transition: transform 0.2s, box-shadow 0.2s;
+            z-index: 2;
+        }
+
+        .player-dot:hover {
+            transform: scale(1.1);
+            box-shadow: 
+                0 12px 35px rgba(0,0,0,0.4),
+                0 0 0 6px rgba(255,255,255,0.4),
+                inset 0 -3px 10px rgba(0,0,0,0.2);
+        }
+
+        .player-dot.dragging {
+            opacity: 0.8;
+            transform: scale(1.15);
+            z-index: 100;
+        }
+
+        .red {
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+        }
+
+        .blue {
+            background: linear-gradient(145deg, #3498db, #2980b9);
+        }
+
+        .bottle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 240px;
+            height: 80px;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 5;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .bottle:hover {
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+
+        .bottle svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 6px 15px rgba(0,0,0,0.4));
+        }
+
+        .spinning {
+            animation: spinBottle 3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            pointer-events: none;
+        }
+
+        @keyframes spinBottle {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(var(--target-rotation)); }
+        }
+
+        .start-button, .ready-button {
+            background: linear-gradient(135deg, #00f260, #0575e6);
+            color: white;
+            border: none;
+            padding: 18px 60px;
+            font-size: 24px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-top: 20px;
+        }
+
+        .start-button:hover, .ready-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+
+        .start-button:active, .ready-button:active {
+            transform: translateY(0);
+        }
+
+        .instructions {
+            color: white;
+            background: rgba(0,0,0,0.3);
+            padding: 20px 30px;
+            border-radius: 20px;
+            margin: 30px auto;
+            max-width: 500px;
+            font-size: 18px;
+            line-height: 1.6;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .turn-indicator {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 20px;
+            font-weight: bold;
+            display: none;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.3);
+            z-index: 10;
+        }
+
+        .sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: sparkleAnim 1.5s ease-out forwards;
+        }
+
+        @keyframes sparkleAnim {
+            0% {
+                transform: translate(0, 0) scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(1);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Setup Screen -->
+        <div class="setup-screen" id="setupScreen">
+            <div class="title">🍾 Flaschendrehen 🍾</div>
+            <div class="subtitle">Positioniere die Spieler durch Ziehen</div>
+            
+            <div class="game-area" id="setupArea">
+                <div class="player-dot red" id="red1" style="top: 50px; left: 50px;">1</div>
+                <div class="player-dot blue" id="blue1" style="top: 50px; right: 50px;"></div>
+                <div class="player-dot blue" id="blue2" style="bottom: 50px; left: 50px;">2</div>
+                <div class="player-dot red" id="red2" style="bottom: 50px; right: 50px;"></div>
+            </div>
+            
+            <div class="instructions">
+                📍 Ziehe die farbigen Punkte an die gewünschten Positionen<br>
+                🔴 Rot 1 beginnt | 🔵 Blau 2 ist als nächstes dran
+            </div>
+            
+            <button class="ready-button" onclick="startGame()">Bereit zum Spielen! 🎮</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div class="game-screen" id="gameScreen">
+            <div class="turn-indicator" id="turnIndicator"></div>
+            
+            <div class="game-area" id="gameArea">
+                <div class="center-circle"></div>
+                
+                <div class="bottle" id="bottle">
+                    <svg viewBox="0 0 240 80" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="bottleGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#86efac;stop-opacity:0.9" />
+                                <stop offset="50%" style="stop-color:#22c55e;stop-opacity:0.95" />
+                                <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+                            </linearGradient>
+                            <linearGradient id="glassShine" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.6" />
+                                <stop offset="50%" style="stop-color:#ffffff;stop-opacity:0.2" />
+                                <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0.6" />
+                            </linearGradient>
+                        </defs>
+                        <ellipse cx="120" cy="40" rx="20" ry="35" fill="url(#bottleGrad)"/>
+                        <ellipse cx="115" cy="38" rx="8" ry="20" fill="url(#glassShine)" opacity="0.4"/>
+                        <rect x="113" y="10" width="14" height="22" fill="url(#bottleGrad)" rx="3"/>
+                        <rect x="110" y="6" width="20" height="12" fill="#15803d" rx="4"/>
+                        <polygon points="140,40 180,32 180,48" fill="#1e293b" opacity="0.8"/>
+                        <polygon points="140,40 175,35 175,45" fill="#334155"/>
+                    </svg>
+                </div>
+            </div>
+            
+            <div class="subtitle" style="margin-top: 30px;">Tippe auf die Flasche zum Drehen! 🔄</div>
+        </div>
+    </div>
+
+    <script>
+        let playerPositions = {};
+        let spinCount = 0;
+        let draggedElement = null;
+        let offsetX, offsetY;
+
+        // Drag and Drop Setup
+        const dots = document.querySelectorAll('.player-dot');
+        dots.forEach(dot => {
+            dot.addEventListener('mousedown', startDrag);
+            dot.addEventListener('touchstart', startDrag);
+        });
+
+        function startDrag(e) {
+            e.preventDefault();
+            draggedElement = this;
+            draggedElement.classList.add('dragging');
+            
+            const touch = e.touches ? e.touches[0] : e;
+            const rect = draggedElement.getBoundingClientRect();
+            offsetX = touch.clientX - rect.left - rect.width / 2;
+            offsetY = touch.clientY - rect.top - rect.height / 2;
+            
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('touchmove', drag);
+            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchend', stopDrag);
+        }
+
+        function drag(e) {
+            if (!draggedElement) return;
+            e.preventDefault();
+            
+            const touch = e.touches ? e.touches[0] : e;
+            const container = document.getElementById('setupArea');
+            const containerRect = container.getBoundingClientRect();
+            
+            let x = touch.clientX - containerRect.left - offsetX - 40;
+            let y = touch.clientY - containerRect.top - offsetY - 40;
+            
+            // Begrenzung innerhalb des Kreises
+            const centerX = containerRect.width / 2;
+            const centerY = containerRect.height / 2;
+            const radius = containerRect.width / 2 - 60;
+            
+            const dx = x + 40 - centerX;
+            const dy = y + 40 - centerY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > radius) {
+                const angle = Math.atan2(dy, dx);
+                x = centerX + radius * Math.cos(angle) - 40;
+                y = centerY + radius * Math.sin(angle) - 40;
+            }
+            
+            draggedElement.style.left = x + 'px';
+            draggedElement.style.top = y + 'px';
+            draggedElement.style.right = 'auto';
+            draggedElement.style.bottom = 'auto';
+        }
+
+        function stopDrag() {
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+                draggedElement = null;
+            }
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('touchmove', drag);
+            document.removeEventListener('mouseup', stopDrag);
+            document.removeEventListener('touchend', stopDrag);
+        }
+
+        function startGame() {
+            // Positionen speichern
+            const gameArea = document.getElementById('gameArea');
+            const setupArea = document.getElementById('setupArea');
+            
+            dots.forEach(dot => {
+                const clone = dot.cloneNode(true);
+                const rect = dot.getBoundingClientRect();
+                const setupRect = setupArea.getBoundingClientRect();
+                
+                clone.style.left = (rect.left - setupRect.left) + 'px';
+                clone.style.top = (rect.top - setupRect.top) + 'px';
+                clone.style.right = 'auto';
+                clone.style.bottom = 'auto';
+                clone.style.cursor = 'default';
+                
+                gameArea.appendChild(clone);
+                
+                // Position für Winkelberechnung speichern
+                playerPositions[dot.id] = {
+                    x: rect.left - setupRect.left + 40,
+                    y: rect.top - setupRect.top + 40,
+                    element: clone
+                };
+            });
+            
+            document.getElementById('setupScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            document.getElementById('bottle').style.display = 'block';
+            
+            showTurnIndicator('Rot 1 ist dran! 🔴');
+        }
+
+        function showTurnIndicator(text) {
+            const indicator = document.getElementById('turnIndicator');
+            indicator.textContent = text;
+            indicator.style.display = 'block';
+            setTimeout(() => {
+                indicator.style.display = 'none';
+            }, 2000);
+        }
+
+        function calculateAngle(targetPos) {
+            const centerX = document.getElementById('gameArea').offsetWidth / 2;
+            const centerY = document.getElementById('gameArea').offsetHeight / 2;
+            
+            const dx = targetPos.x - centerX;
+            const dy = targetPos.y - centerY;
+            
+            let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+            return angle;
+        }
+
+        function createSparkles() {
+            const bottle = document.getElementById('bottle');
+            const rect = bottle.getBoundingClientRect();
+            
+            for (let i = 0; i < 20; i++) {
+                const sparkle = document.createElement('div');
+                sparkle.className = 'sparkle';
+                sparkle.style.left = rect.left + rect.width / 2 + 'px';
+                sparkle.style.top = rect.top + rect.height / 2 + 'px';
+                
+                const angle = (Math.PI * 2 * i) / 20;
+                const distance = 50 + Math.random() * 50;
+                sparkle.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+                sparkle.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
+                
+                document.body.appendChild(sparkle);
+                setTimeout(() => sparkle.remove(), 1500);
+            }
+        }
+
+        function spinBottle() {
+            if (spinCount >= 2) return;
+            
+            const bottle = document.getElementById('bottle');
+            bottle.classList.remove('spinning');
+            
+            setTimeout(() => {
+                let targetAngle;
+                
+                if (spinCount === 0) {
+                    // Erster Spin: zeigt auf unnummeriertes Rot (red2)
+                    targetAngle = calculateAngle(playerPositions['red2']);
+                    showTurnIndicator('Blau 2 ist dran! 🔵');
+                } else if (spinCount === 1) {
+                    // Zweiter Spin: zeigt auf unnummeriertes Blau (blue1)
+                    targetAngle = calculateAngle(playerPositions['blue1']);
+                }
+                
+                const extraSpins = 1440 + (Math.random() * 360);
+                const totalRotation = extraSpins + targetAngle;
+                
+                bottle.style.setProperty('--target-rotation', totalRotation + 'deg');
+                bottle.classList.add('spinning');
+                
+                createSparkles();
+                
+                spinCount++;
+                
+                setTimeout(() => {
+                    bottle.classList.remove('spinning');
+                    createSparkles();
+                }, 3000);
+            }, 100);
+        }
+
+        document.getElementById('bottle').addEventListener('click', spinBottle);
+        document.getElementById('bottle').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            spinBottle();
+        });
+    </script>
+</body>
+</html>
